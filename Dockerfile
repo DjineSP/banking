@@ -1,8 +1,7 @@
 # ── Stage 1 : Build ──────────────────────────────────────────────────────────
 FROM maven:3.9-eclipse-temurin-21 AS builder
-WORKDIR /app
+WORKDIR /build
 
-# Télécharger les dépendances en cache avant de copier le code source
 COPY pom.xml .
 RUN mvn dependency:go-offline -q
 
@@ -11,15 +10,16 @@ RUN mvn package -DskipTests -q
 
 # ── Stage 2 : Runtime ─────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
+
+# Jar dans /opt/banking pour ne pas interférer avec le disque persistant
+RUN mkdir -p /opt/banking
+COPY --from=builder /build/target/*.jar /opt/banking/app.jar
+
+# Répertoire de travail = racine du projet = emplacement de banking.db
+# Sur Render : monter le Persistent Disk sur /app
 WORKDIR /app
 
-# Répertoire persistant pour la base SQLite (monter un disque Render ici)
-RUN mkdir -p /data
-
-COPY --from=builder /app/target/*.jar app.jar
-
 ENV PORT=8080
-
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -jar /opt/banking/app.jar"]
