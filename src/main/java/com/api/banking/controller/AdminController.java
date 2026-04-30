@@ -35,6 +35,12 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok("Compte désactivé avec succès", null));
     }
 
+    @PutMapping("/{id}/activate")
+    @Operation(summary = "Réactiver un compte désactivé")
+    public ResponseEntity<ApiResponse<AccountResponse>> activateAccount(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok("Compte réactivé avec succès", accountService.activateAccount(id)));
+    }
+
     @GetMapping
     @Operation(summary = "Lister tous les comptes")
     public ResponseEntity<ApiResponse<List<AccountResponse>>> listAccounts() {

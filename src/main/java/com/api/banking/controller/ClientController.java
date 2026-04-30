@@ -3,6 +3,7 @@ package com.api.banking.controller;
 import com.api.banking.dto.ApiResponse;
 import com.api.banking.dto.TransactionRequest;
 import com.api.banking.dto.TransactionResponse;
+import com.api.banking.dto.TransferRequest;
 import com.api.banking.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 
@@ -30,6 +32,13 @@ public class ClientController {
                 Map.of("account_id", id, "balance", balance)));
     }
 
+    @GetMapping("/{id}/transactions")
+    @Operation(summary = "Voir l'historique des transactions d'un compte")
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getTransactions(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok("Historique des transactions",
+                accountService.getTransactions(id)));
+    }
+
     @PostMapping("/{id}/credit")
     @Operation(summary = "Créditer un compte")
     public ResponseEntity<ApiResponse<TransactionResponse>> credit(@PathVariable Long id,
@@ -44,5 +53,13 @@ public class ClientController {
                                                                    @RequestBody TransactionRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Débit effectué avec succès",
                 accountService.debit(id, request)));
+    }
+
+    @PostMapping("/{id}/transfer")
+    @Operation(summary = "Effectuer un virement vers un autre compte")
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> transfer(@PathVariable Long id,
+                                                                            @RequestBody TransferRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Virement effectué avec succès",
+                accountService.transfer(id, request)));
     }
 }

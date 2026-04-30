@@ -40,6 +40,12 @@ public class Transaction {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "linked_account_id")
+    private Long linkedAccountId;
+
+    @Column(name = "balance_after", precision = 15, scale = 2)
+    private BigDecimal balanceAfter;
+
     @PrePersist
     private void prePersist() {
         this.createdAt = LocalDateTime.now();
