@@ -1,0 +1,93 @@
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture,overlay]
+    \draw[maincolor, line width=3pt]
+      ($(current page.north west)+(1cm,-1cm)$) rectangle
+      ($(current page.south east)+(-1cm,1cm)$);
+\end{tikzpicture}
+
+\begin{center}
+
+\vspace*{0.2cm}
+
+\begin{tabular}{m{0.38\textwidth} m{0.16\textwidth} m{0.38\textwidth}}
+    {\centering\small
+    RÉPUBLIQUE DU CAMEROUN\\[3pt]
+    PAIX-TRAVAIL-PATRIE\\[3pt]
+    UNIVERSITÉ DE YAOUNDÉ I\\[2pt]
+    Faculté des Sciences\\[2pt]
+    Département d'Informatique\\[2pt]
+    BP 812 Yaoundé\par}
+    &
+    {\centering\includegraphics[width=2.5cm]{ressources/logo_uy1.png}\par}
+    &
+    {\centering\small
+    REPUBLIC OF CAMEROON\\[3pt]
+    PEACE-WORK-FATHERLAND\\[3pt]
+    UNIVERSITY OF YAOUNDE I\\[2pt]
+    Faculty of Sciences\\[2pt]
+    Department of Computer Science\\[2pt]
+    PO Box 812 Yaoundé\par}
+\end{tabular}
+
+\vspace{0.5cm}
+{\color{maincolor}\rule{0.92\textwidth}{1.5pt}}
+\vspace{0.5cm}
+
+\colorbox{maincolor!10}{%
+\begin{minipage}{0.85\textwidth}
+    \vspace{10pt}
+    \centering
+    {\large \textbf{ICT304 : Software Testing and Quality Assurance}}\\[8pt]
+    {\LARGE \textbf{Rapport d'Analyse et de Couverture}}
+    \vspace{10pt}
+\end{minipage}%
+}
+
+\vfill
+
+% --- TITRE DU DEVOIR ---
+\begin{tikzpicture}
+  \node[draw=maincolor, thick, fill=maincolor!90, text=white,
+        minimum height=3.5cm, minimum width=0.88\textwidth,
+        rounded corners=12pt, text width=0.80\textwidth,
+        align=center, font=\bfseries\Large] {
+    % ====================================================
+    % MODIFIER LE TITRE DU DEVOIR ICI
+    API DE GESTION BANCAIRE
+    % ====================================================
+  };
+\end{tikzpicture}
+
+\vfill
+
+% --- AUTEUR ---
+{\bfseries Réalisé par :}\\
+\vspace{0.4cm}
+\begin{tabular}{ll}
+    \Large DJINE SINTO PAFING & \Large 23U2292
+\end{tabular}
+
+\vspace{0.8cm}
+
+% --- ENCADRANT ---
+{\bfseries Chargé de cours :}\\
+\vspace{0.4cm}
+% ====================================================
+% MODIFIER LE NOM DE L'ENSEIGNANT ICI
+\Large Dr.\ KIMBI Xaveria
+% ====================================================
+
+\vfill
+
+% --- ANNÉE ACADÉMIQUE ---
+\begin{tikzpicture}
+    \node[draw=maincolor, fill=maincolor, text=white,
+          rounded corners=0.3cm, thick,
+          minimum width=7cm, minimum height=0.8cm]
+    {\textbf{Année Académique 2025-2026}};
+\end{tikzpicture}
+
+\vspace{0.3cm}
+
+\end{center}
+\newpage

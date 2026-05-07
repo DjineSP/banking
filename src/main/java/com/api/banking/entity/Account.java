@@ -1,5 +1,6 @@
 package com.api.banking.entity;
 
+import com.api.banking.enums.AccountStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,26 +19,38 @@ public class Account {
     @Column(name = "id_account")
     private Long id;
 
+    @Column(name = "account_number", nullable = false, unique = true, length = 20)
+    private String accountNumber;
+
     @Column(nullable = false)
     private String fullname;
 
-    @Column(nullable = false, unique = true)
+    @Column
     private String phone;
 
-    @Column(nullable = false, unique = true)
+    @Column
     private String email;
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AccountStatus status = AccountStatus.ACTIVE;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean isActive = true;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "bank_id", nullable = false)
+    private Bank bank;
 
     @PrePersist
     private void prePersist() {
         this.createdAt = LocalDateTime.now();
+    }
+
+    public boolean isActive() {
+        return this.status == AccountStatus.ACTIVE;
     }
 }

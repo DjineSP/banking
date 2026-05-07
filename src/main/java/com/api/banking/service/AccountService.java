@@ -1,193 +1,149 @@
 package com.api.banking.service;
 
-import com.api.banking.dto.AccountResponse;
-import com.api.banking.dto.CreateAccountRequest;
-import com.api.banking.dto.TransactionRequest;
-import com.api.banking.dto.TransactionResponse;
-import com.api.banking.dto.TransferRequest;
+import com.api.banking.dto.request.CreateAccountRequest;
+import com.api.banking.dto.request.UpdateAccountRequest;
+import com.api.banking.dto.response.AccountResponse;
 import com.api.banking.entity.Account;
-import com.api.banking.entity.Transaction;
-import com.api.banking.entity.Transaction.TransactionStatus;
-import com.api.banking.entity.Transaction.TransactionType;
-import com.api.banking.exception.AccountAlreadyExistsException;
-import com.api.banking.exception.AccountInactiveException;
+import com.api.banking.entity.Bank;
+import com.api.banking.enums.AccountStatus;
 import com.api.banking.exception.AccountNotFoundException;
-import com.api.banking.exception.InsufficientBalanceException;
+import com.api.banking.exception.BankNotFoundException;
 import com.api.banking.repository.AccountRepository;
-import com.api.banking.repository.TransactionRepository;
+import com.api.banking.repository.BankRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class AccountService {
 
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$"
+    );
+
+    // Accepte : 6XXXXXXXX, 2XXXXXXXX, +237XXXXXXXXX, 00237XXXXXXXXX (espaces ignorés)
+    private static final Pattern PHONE_PATTERN = Pattern.compile(
+            "^(\\+237|00237)?[62]\\d{8}$"
+    );
+
     private final AccountRepository accountRepository;
-    private final TransactionRepository transactionRepository;
+    private final BankRepository bankRepository;
 
     @Transactional
     public AccountResponse createAccount(CreateAccountRequest request) {
+        if (request.bankId() == null)
+            throw new IllegalArgumentException("L'identifiant de la banque est obligatoire");
         if (request.fullname() == null || request.fullname().isBlank())
             throw new IllegalArgumentException("Le nom complet est obligatoire");
         if (request.email() == null || request.email().isBlank())
             throw new IllegalArgumentException("L'email est obligatoire");
         if (request.phone() == null || request.phone().isBlank())
-            throw new IllegalArgumentException("Le téléphone est obligatoire");
+            throw new IllegalArgumentException("Le numéro de téléphone est obligatoire");
 
-        if (accountRepository.existsByEmail(request.email()))
-            throw new AccountAlreadyExistsException("email", request.email());
-        if (accountRepository.existsByPhone(request.phone()))
-            throw new AccountAlreadyExistsException("téléphone", request.phone());
+        validateEmail(request.email());
+        validatePhone(request.phone());
+
+        Bank bank = bankRepository.findById(request.bankId())
+                .orElseThrow(() -> new BankNotFoundException(request.bankId()));
+        if (!bank.isActive())
+            throw new IllegalArgumentException("Impossible de créer un compte dans une banque désactivée");
 
         Account account = new Account();
-        account.setFullname(request.fullname());
-        account.setEmail(request.email());
-        account.setPhone(request.phone());
+        account.setBank(bank);
+        account.setAccountNumber(generateAccountNumber(bank.getCode()));
+        account.setFullname(request.fullname().trim());
+        account.setEmail(request.email().trim().toLowerCase());
+        account.setPhone(normalizePhone(request.phone()));
+        return AccountResponse.from(accountRepository.save(account));
+    }
+
+    @Transactional(readOnly = true)
+    public AccountResponse getAccount(String accountNumber) {
+        return AccountResponse.from(findByAccountNumber(accountNumber));
+    }
+
+    @Transactional
+    public AccountResponse updateAccount(String accountNumber, UpdateAccountRequest request) {
+        Account account = findByAccountNumber(accountNumber);
+
+        if (request.fullname() != null && !request.fullname().isBlank())
+            account.setFullname(request.fullname().trim());
+
+        if (request.phone() != null && !request.phone().isBlank()) {
+            validatePhone(request.phone());
+            account.setPhone(normalizePhone(request.phone()));
+        }
+
+        if (request.email() != null && !request.email().isBlank()) {
+            validateEmail(request.email());
+            account.setEmail(request.email().trim().toLowerCase());
+        }
+
         return AccountResponse.from(accountRepository.save(account));
     }
 
     @Transactional
-    public void deleteAccount(Long id) {
-        Account account = findById(id);
-        account.setActive(false);
-        accountRepository.save(account);
-    }
-
-    @Transactional
-    public AccountResponse activateAccount(Long id) {
-        Account account = findById(id);
-        account.setActive(true);
+    public AccountResponse suspendAccount(String accountNumber) {
+        Account account = findByAccountNumber(accountNumber);
+        if (account.getStatus() == AccountStatus.CLOSED)
+            throw new IllegalArgumentException("Un compte clôturé ne peut pas être suspendu");
+        account.setStatus(AccountStatus.SUSPENDED);
         return AccountResponse.from(accountRepository.save(account));
     }
 
+    @Transactional
+    public AccountResponse closeAccount(String accountNumber) {
+        Account account = findByAccountNumber(accountNumber);
+        account.setStatus(AccountStatus.CLOSED);
+        return AccountResponse.from(accountRepository.save(account));
+    }
+
+    @Transactional
+    public AccountResponse activateAccount(String accountNumber) {
+        Account account = findByAccountNumber(accountNumber);
+        if (account.getStatus() == AccountStatus.CLOSED)
+            throw new IllegalArgumentException("Un compte clôturé ne peut pas être réactivé");
+        account.setStatus(AccountStatus.ACTIVE);
+        return AccountResponse.from(accountRepository.save(account));
+    }
+
+    @Transactional(readOnly = true)
     public List<AccountResponse> listAccounts() {
         return accountRepository.findAll().stream().map(AccountResponse::from).toList();
     }
 
-    public BigDecimal getBalance(Long id) {
-        Account account = findById(id);
-        if (!account.isActive()) throw new AccountInactiveException(id);
-        return account.getBalance();
+    @Transactional(readOnly = true)
+    public Account findByAccountNumber(String accountNumber) {
+        return accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
     }
 
-    public List<TransactionResponse> getTransactions(Long id) {
-        findById(id); // vérifie que le compte existe
-        return transactionRepository.findByAccountIdOrderByCreatedAtDesc(id)
-                .stream()
-                .map(TransactionResponse::from)
-                .toList();
+    private void validateEmail(String email) {
+        if (!EMAIL_PATTERN.matcher(email.trim()).matches())
+            throw new IllegalArgumentException("Format d'email invalide : " + email);
     }
 
-    @Transactional
-    public TransactionResponse credit(Long id, TransactionRequest request) {
-        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0)
-            throw new IllegalArgumentException("Le montant doit être positif");
-
-        Account account = findById(id);
-        if (!account.isActive()) throw new AccountInactiveException(id);
-
-        Transaction tx = new Transaction();
-        tx.setAccountId(id);
-        tx.setType(TransactionType.CREDIT);
-        tx.setAmount(request.amount());
-
-        try {
-            account.setBalance(account.getBalance().add(request.amount()));
-            accountRepository.save(account);
-            tx.setStatus(TransactionStatus.SUCCESS);
-            tx.setBalanceAfter(account.getBalance());
-        } catch (Exception e) {
-            tx.setStatus(TransactionStatus.FAILED);
-        }
-
-        transactionRepository.save(tx);
-        return TransactionResponse.from(tx);
+    private void validatePhone(String phone) {
+        String normalized = phone.replaceAll("\\s", "");
+        if (!PHONE_PATTERN.matcher(normalized).matches())
+            throw new IllegalArgumentException(
+                    "Format de numéro invalide. Exemples acceptés : 677123456, +237 677123456");
     }
 
-    @Transactional
-    public TransactionResponse debit(Long id, TransactionRequest request) {
-        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0)
-            throw new IllegalArgumentException("Le montant doit être positif");
-
-        Account account = findById(id);
-        if (!account.isActive()) throw new AccountInactiveException(id);
-
-        Transaction tx = new Transaction();
-        tx.setAccountId(id);
-        tx.setType(TransactionType.DEBIT);
-        tx.setAmount(request.amount());
-
-        if (account.getBalance().compareTo(request.amount()) < 0) {
-            tx.setStatus(TransactionStatus.FAILED);
-            tx.setBalanceAfter(account.getBalance());
-            transactionRepository.save(tx);
-            throw new InsufficientBalanceException();
-        }
-
-        try {
-            account.setBalance(account.getBalance().subtract(request.amount()));
-            accountRepository.save(account);
-            tx.setStatus(TransactionStatus.SUCCESS);
-            tx.setBalanceAfter(account.getBalance());
-        } catch (Exception e) {
-            tx.setStatus(TransactionStatus.FAILED);
-        }
-
-        transactionRepository.save(tx);
-        return TransactionResponse.from(tx);
+    private String normalizePhone(String phone) {
+        return phone.replaceAll("\\s", "");
     }
 
-    @Transactional
-    public List<TransactionResponse> transfer(Long sourceId, TransferRequest request) {
-        if (request.targetAccountId() == null)
-            throw new IllegalArgumentException("Le compte destinataire est obligatoire");
-        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0)
-            throw new IllegalArgumentException("Le montant doit être positif");
-        if (sourceId.equals(request.targetAccountId()))
-            throw new IllegalArgumentException("Le compte source et destinataire doivent être différents");
-
-        Account source = findById(sourceId);
-        Account target = findById(request.targetAccountId());
-
-        if (!source.isActive()) throw new AccountInactiveException(sourceId);
-        if (!target.isActive()) throw new AccountInactiveException(request.targetAccountId());
-
-        if (source.getBalance().compareTo(request.amount()) < 0)
-            throw new InsufficientBalanceException();
-
-        source.setBalance(source.getBalance().subtract(request.amount()));
-        target.setBalance(target.getBalance().add(request.amount()));
-        accountRepository.save(source);
-        accountRepository.save(target);
-
-        Transaction txDebit = new Transaction();
-        txDebit.setAccountId(sourceId);
-        txDebit.setType(TransactionType.DEBIT);
-        txDebit.setAmount(request.amount());
-        txDebit.setStatus(TransactionStatus.SUCCESS);
-        txDebit.setBalanceAfter(source.getBalance());
-        txDebit.setLinkedAccountId(request.targetAccountId());
-
-        Transaction txCredit = new Transaction();
-        txCredit.setAccountId(request.targetAccountId());
-        txCredit.setType(TransactionType.CREDIT);
-        txCredit.setAmount(request.amount());
-        txCredit.setStatus(TransactionStatus.SUCCESS);
-        txCredit.setBalanceAfter(target.getBalance());
-        txCredit.setLinkedAccountId(sourceId);
-
-        transactionRepository.save(txDebit);
-        transactionRepository.save(txCredit);
-
-        return List.of(TransactionResponse.from(txDebit), TransactionResponse.from(txCredit));
-    }
-
-    private Account findById(Long id) {
-        return accountRepository.findById(id)
-                .orElseThrow(() -> new AccountNotFoundException(id));
+    private String generateAccountNumber(String bankCode) {
+        String accountNumber;
+        do {
+            accountNumber = bankCode + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } while (accountRepository.existsByAccountNumber(accountNumber));
+        return accountNumber;
     }
 }

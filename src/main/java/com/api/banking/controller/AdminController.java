@@ -1,8 +1,9 @@
 package com.api.banking.controller;
 
-import com.api.banking.dto.AccountResponse;
 import com.api.banking.dto.ApiResponse;
-import com.api.banking.dto.CreateAccountRequest;
+import com.api.banking.dto.request.CreateAccountRequest;
+import com.api.banking.dto.request.UpdateAccountRequest;
+import com.api.banking.dto.response.AccountResponse;
 import com.api.banking.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/accounts")
 @RequiredArgsConstructor
-@Tag(name = "Admin", description = "Gestion des comptes bancaires")
+@Tag(name = "Admin - Comptes", description = "Gestion des comptes bancaires")
 public class AdminController {
 
     private final AccountService accountService;
@@ -28,22 +29,44 @@ public class AdminController {
                 .body(ApiResponse.ok("Compte créé avec succès", accountService.createAccount(request)));
     }
 
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Supprimer (désactiver) un compte")
-    public ResponseEntity<ApiResponse<Void>> deleteAccount(@PathVariable Long id) {
-        accountService.deleteAccount(id);
-        return ResponseEntity.ok(ApiResponse.ok("Compte désactivé avec succès", null));
-    }
-
-    @PutMapping("/{id}/activate")
-    @Operation(summary = "Réactiver un compte désactivé")
-    public ResponseEntity<ApiResponse<AccountResponse>> activateAccount(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok("Compte réactivé avec succès", accountService.activateAccount(id)));
-    }
-
     @GetMapping
     @Operation(summary = "Lister tous les comptes")
     public ResponseEntity<ApiResponse<List<AccountResponse>>> listAccounts() {
         return ResponseEntity.ok(ApiResponse.ok("Liste des comptes", accountService.listAccounts()));
+    }
+
+    @GetMapping("/{accountNumber}")
+    @Operation(summary = "Consulter un compte")
+    public ResponseEntity<ApiResponse<AccountResponse>> getAccount(@PathVariable String accountNumber) {
+        return ResponseEntity.ok(ApiResponse.ok("Détails du compte", accountService.getAccount(accountNumber)));
+    }
+
+    @PatchMapping("/{accountNumber}")
+    @Operation(summary = "Modifier un compte")
+    public ResponseEntity<ApiResponse<AccountResponse>> updateAccount(
+            @PathVariable String accountNumber, @RequestBody UpdateAccountRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Compte mis à jour avec succès",
+                accountService.updateAccount(accountNumber, request)));
+    }
+
+    @PutMapping("/{accountNumber}/suspend")
+    @Operation(summary = "Suspendre un compte")
+    public ResponseEntity<ApiResponse<AccountResponse>> suspendAccount(@PathVariable String accountNumber) {
+        return ResponseEntity.ok(ApiResponse.ok("Compte suspendu avec succès",
+                accountService.suspendAccount(accountNumber)));
+    }
+
+    @PutMapping("/{accountNumber}/close")
+    @Operation(summary = "Clôturer un compte")
+    public ResponseEntity<ApiResponse<AccountResponse>> closeAccount(@PathVariable String accountNumber) {
+        return ResponseEntity.ok(ApiResponse.ok("Compte clôturé avec succès",
+                accountService.closeAccount(accountNumber)));
+    }
+
+    @PutMapping("/{accountNumber}/activate")
+    @Operation(summary = "Réactiver un compte")
+    public ResponseEntity<ApiResponse<AccountResponse>> activateAccount(@PathVariable String accountNumber) {
+        return ResponseEntity.ok(ApiResponse.ok("Compte réactivé avec succès",
+                accountService.activateAccount(accountNumber)));
     }
 }

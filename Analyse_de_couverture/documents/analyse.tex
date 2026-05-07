@@ -1,0 +1,78 @@
+\pdfobjcompresslevel 0
+\documentclass[a4paper,oneside,12pt]{article}
+
+% --- PACKAGES ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[none]{hyphenat}
+\sloppy
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage[table]{xcolor}
+\usepackage{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{multirow, multicol}
+\usepackage{pdfpages}
+\usepackage{url}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{ragged2e}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,calc,positioning}
+
+% --- CONFIGURATION GEOMETRY ---
+\geometry{a4paper, left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm, includefoot, headheight=20pt}
+
+% --- COULEURS ---
+\definecolor{maincolor}{HTML}{098865}
+\definecolor{titlecolor}{HTML}{098865}
+\definecolor{headergray}{gray}{0.85}
+\definecolor{tablerowalt}{gray}{0.95}
+
+% --- PARAMÈTRES ---
+\setlength{\parindent}{0pt}
+\linespread{1.2}
+
+% --- COLONNE ADAPTATIVE ---
+\newcolumntype{L}{>{\RaggedRight\arraybackslash}X}
+\newcolumntype{C}{>{\Centering\arraybackslash}X}
+\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
+
+% --- HYPERLIENS ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=maincolor,
+    urlcolor=maincolor,
+    citecolor=maincolor
+}
+
+% --- DÉBUT DU DOCUMENT ---
+\begin{document}
+
+% --- PAGE DE GARDE ---
+\input{analyse_de_couverture/page_de_garde.tex}
+
+% --- EN-TÊTE ET PIED DE PAGE ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small ICT304 - Analyse et Couverture}
+\fancyhead[R]{\small DJINE SINTO PAFING}
+\fancyfoot[C]{\thepage}
+\setcounter{page}{1}
+
+% =====================================================================
+%  CONTENU DU DOCUMENT
+% =====================================================================
+
+
+
+% =====================================================================
+
+\end{document}

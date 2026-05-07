@@ -1,20 +1,20 @@
 package com.api.banking.controller;
 
 import com.api.banking.dto.ApiResponse;
-import com.api.banking.dto.TransactionRequest;
-import com.api.banking.dto.TransactionResponse;
-import com.api.banking.dto.TransferRequest;
+import com.api.banking.dto.request.InterBankTransferRequest;
+import com.api.banking.dto.request.TransactionRequest;
+import com.api.banking.dto.request.TransferRequest;
+import com.api.banking.dto.response.AccountResponse;
+import com.api.banking.dto.response.TransactionResponse;
 import com.api.banking.service.AccountService;
+import com.api.banking.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
-
 
 @RestController
 @RequestMapping("/client/accounts")
@@ -23,43 +23,52 @@ import java.util.Map;
 public class ClientController {
 
     private final AccountService accountService;
+    private final TransactionService transactionService;
 
-    @GetMapping("/{id}/balance")
-    @Operation(summary = "Voir le solde d'un compte")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getBalance(@PathVariable Long id) {
-        BigDecimal balance = accountService.getBalance(id);
-        return ResponseEntity.ok(ApiResponse.ok("Solde récupéré avec succès",
-                Map.of("account_id", id, "balance", balance)));
+    @GetMapping("/{accountNumber}")
+    @Operation(summary = "Consulter son compte")
+    public ResponseEntity<ApiResponse<AccountResponse>> getAccount(@PathVariable String accountNumber) {
+        return ResponseEntity.ok(ApiResponse.ok("Détails du compte",
+                accountService.getAccount(accountNumber)));
     }
 
-    @GetMapping("/{id}/transactions")
-    @Operation(summary = "Voir l'historique des transactions d'un compte")
-    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getTransactions(@PathVariable Long id) {
+    @GetMapping("/{accountNumber}/transactions")
+    @Operation(summary = "Consulter l'historique des transactions")
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getTransactions(
+            @PathVariable String accountNumber) {
         return ResponseEntity.ok(ApiResponse.ok("Historique des transactions",
-                accountService.getTransactions(id)));
+                transactionService.getTransactions(accountNumber)));
     }
 
-    @PostMapping("/{id}/credit")
-    @Operation(summary = "Créditer un compte")
-    public ResponseEntity<ApiResponse<TransactionResponse>> credit(@PathVariable Long id,
-                                                                    @RequestBody TransactionRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Crédit effectué avec succès",
-                accountService.credit(id, request)));
+    @PostMapping("/{accountNumber}/deposit")
+    @Operation(summary = "Effectuer un dépôt")
+    public ResponseEntity<ApiResponse<TransactionResponse>> deposit(
+            @PathVariable String accountNumber, @RequestBody TransactionRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Dépôt effectué avec succès",
+                transactionService.deposit(accountNumber, request)));
     }
 
-    @PostMapping("/{id}/debit")
-    @Operation(summary = "Débiter un compte")
-    public ResponseEntity<ApiResponse<TransactionResponse>> debit(@PathVariable Long id,
-                                                                   @RequestBody TransactionRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Débit effectué avec succès",
-                accountService.debit(id, request)));
+    @PostMapping("/{accountNumber}/withdrawal")
+    @Operation(summary = "Effectuer un retrait")
+    public ResponseEntity<ApiResponse<TransactionResponse>> withdrawal(
+            @PathVariable String accountNumber, @RequestBody TransactionRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Retrait effectué avec succès",
+                transactionService.withdrawal(accountNumber, request)));
     }
 
-    @PostMapping("/{id}/transfer")
-    @Operation(summary = "Effectuer un virement vers un autre compte")
-    public ResponseEntity<ApiResponse<List<TransactionResponse>>> transfer(@PathVariable Long id,
-                                                                            @RequestBody TransferRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Virement effectué avec succès",
-                accountService.transfer(id, request)));
+    @PostMapping("/{accountNumber}/transfer")
+    @Operation(summary = "Effectuer un virement intrabank")
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> transferIntra(
+            @PathVariable String accountNumber, @RequestBody TransferRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Virement intrabank effectué avec succès",
+                transactionService.transferIntra(accountNumber, request)));
+    }
+
+    @PostMapping("/{accountNumber}/transfer/interbank")
+    @Operation(summary = "Effectuer un virement interbank")
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> transferInter(
+            @PathVariable String accountNumber, @RequestBody InterBankTransferRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Virement interbank effectué avec succès",
+                transactionService.transferInter(accountNumber, request)));
     }
 }
